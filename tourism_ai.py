@@ -1,11 +1,11 @@
 import os
 import requests
 from dotenv import load_dotenv
-from google import genai
+import google.generativeai as genai
 
 load_dotenv()
-
-client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+model = genai.GenerativeModel("gemini-2.0-flash")
 
 def get_coords(place):
     url = "https://nominatim.openstreetmap.org/search"
@@ -68,30 +68,27 @@ def get_places(place):
                     break
             
             if sites:
-                return f"Tourist attractions in {place}:\n" + "\n".join(f"- {s}" for s in sites)
+                return "Tourist attractions in " + place + ":\n" + "\n".join(f"- {s}" for s in sites)
         return f"No attractions found for {place}"
-    except Exception as e:
+    except:
         return f"Could not fetch places for {place}"
 
 def process(query):
-    extract_prompt = f"Extract the place name from this query: '{query}'. Return ONLY the place name, nothing else."
-    extract_resp = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=extract_prompt
-    )
+    extract_prompt = f"Extract the place name from this query: '{query}'. Return ONLY the place name."
+    extract_resp = model.generate_content(extract_prompt)
     place = extract_resp.text.strip()
-    
+
     result = ""
-    
-    if "weather" in query.lower() or "temperature" in query.lower():
+
+    if any(word in query.lower() for word in ["weather", "temperature"]):
         result += get_weather(place) + "\n"
-    
-    if "visit" in query.lower() or "places" in query.lower() or "attractions" in query.lower() or "plan" in query.lower():
+
+    if any(word in query.lower() for word in ["visit", "places", "attractions", "plan"]):
         result += get_places(place)
-    
+
     if not result.strip():
         result = get_places(place)
-    
+
     return result
 
 if __name__ == "__main__":
