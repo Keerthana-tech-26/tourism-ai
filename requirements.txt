@@ -3,3 +3,5 @@ langchain-google-genai
 google-generativeai
 requests
 python-dotenv
+gunicorn
+Flask
